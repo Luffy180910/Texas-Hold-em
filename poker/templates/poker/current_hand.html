@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+{% load static from staticfiles %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/current_hand.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    
+{% block head_js %}
+<script type="text/javascript" src="{% static 'js/sounds.js' %}"></script>
+{% endblock %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-4">
+            {% for player in players %}
+            {% if player.user == request.user %}
+            <form class="margin-top" method="POST" action="{% url 'leave_table' table.id hand.id player.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Leave</button>
+            </form>
+            {% endif %}
+            {% endfor %}
+            
+            {% if request.user not in all_players %}
+            <form class="margin-top" method="POST" action="{% url 'find_table' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Leave</button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="col-4 center">
+            <h3>{{ table.name }}</h3>
+        </div>
+    
+    {% for player in players %}
+        {% if hand == None or hand.check_no == no_of_river_players %}
+            {% if player.user == request.user and player.seat_num == dealer and number_of_players != 1 %}
+            <div class="col-4">
+                <form class="margin-top" method="POST" action="{% url 'deal' table.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-info">Deal</button>
+                </form>
+            </div>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+    </div>
+
+<div class="row">
+    <div class="col center">
+        <h3>Pot: <i>{{ hand.pot }}</i></h3>
+    </div>
+</div>
+<hr>
+
+<div class="row">
+    <div class="col center">
+{% if hand.check_no >= number_of_players  %}
+    <img src="/static/images/{{ hand.card_1 }}.png" class="cards" alt="{{ hand.card_1 }}">
+    <img src="/static/images/{{ hand.card_2 }}.png" class="cards" alt="{{ hand.card_2 }}">
+    <img src="/static/images/{{ hand.card_3 }}.png" class="cards" alt="{{ hand.card_3 }}">
+{% endif %}
+
+{% if hand.check_no >= no_of_flop_players %}
+    <img src="/static/images/{{ hand.card_4 }}.png" class="cards" alt="{{ hand.card_4 }}">
+{% endif %}
+
+{% if hand.check_no >= no_of_turn_players %}
+    <img src="/static/images/{{ hand.card_5 }}.png" class="cards" alt="{{ hand.card_5 }}">
+{% endif %}
+    </div>
+</div>
+<br>
+<div class="row">
+{% for player in players %}
+
+    {% if player.seat_num == hand.current_player %}
+    <div class="col-sm-6 col-md-4 col-lg-3 center active">
+       Current bet: {{ player.player_pot }}
+    {% else %}
+    <div class="col-sm-6 col-md-4 col-lg-3 center">
+       Current bet: {{ player.player_pot }}
+    {% endif %}    
+        <div class="row">
+            <div class="col-12">
+                <img src="{{ MEDIA_URL }}{{ player.user.profile.image }}" class="img-circle" alt="User Profile">
+                <p>{{ player.user }} - <img src="/static/images/poker-chip.png" alt="poker chip"><i> {{ player.chips }}</i></p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12 center">
+        {% if hand.check_no == no_of_river_players and player.is_active %}
+                <img src="/static/images/{{ player.card_1 }}.png" class="cards" alt="{{ player.card_1 }}">
+                <img src="/static/images/{{ player.card_2 }}.png" class="cards" alt="{{ player.card_2 }}">
+            </div>
+        </div>
+        {% elif player.user == request.user and player.is_active %}
+        
+                <img src="/static/images/{{ player.card_1 }}.png" class="cards" alt="{{ player.card_1 }}">
+                <img src="/static/images/{{ player.card_2 }}.png" class="cards" alt="{{ player.card_2 }}">
+            </div>
+        </div>
+        {% elif player.is_active == False %}
+                <p>Folded</p>
+            </div>
+        </div>
+        {% else %}
+                <img src="/static/images/blue_back.png" class="cards" alt="back of card">
+                <img src="/static/images/blue_back.png" class="cards" alt="back of card">
+            </div>
+        </div>
+        {% endif %}
+        
+        {% for winner in hand.winner.all %}
+            {% if player == winner %}
+            <h3 class="margin-top">Winner</h3>
+            {% endif %}
+        {% endfor %}
+
+    {% if hand != None and player.user == request.user and player.is_active and player.seat_num == hand.current_player and hand.check_no < no_of_river_players %}
+    <div class="row">
+        <div class="col-6 center">
+            <form method="POST" action="{% url 'fold' hand.id player.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger margin-top">Fold</button>
+            </form>
+        </div>
+        <div class="col-6 center">
+    {% if hand.current_bet == 0 or hand.check_no == big_blind_check %} 
+            <form method="POST" action="{% url 'check' table.id hand.id player.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning margin-top">Check</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+            <form method="POST" action="{% url 'call' table.id hand.id player.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning margin-top">Call</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    <br>
+    <div class="row">
+        <div class="col-12 center">
+    {% if hand.current_bet == 0 %}
+            <form method="POST" action="{% url 'bet' table.id hand.id player.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-info">Bet</button>
+                <input class="input" placeholder="Bet" type="number" step="5" name="bet" required/>
+            </form>
+        </div>
+    </div>
+    {% else %}
+            <form method="POST" action="{% url 'raise' table.id hand.id player.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-info">Raise</button>
+                <input class="input" placeholder="Raise" type="number" step="5" name="raise" required/>
+            </form>
+       </div>
+    </div>
+    {% endif %}
+    {% if hand.current_bet != 0 and player.player_pot == 0 %}
+    <div class="row">
+        <div class="col">
+                <p>{{ hand.current_bet }} to call</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if player.player_pot != 0 %}
+    <div class="row">
+        <div class="col">
+                <p>{{ hand.raise_amount }} to call</p>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    <br>
+    </div>
+{% endfor %}
+    </div>
+</div>
+    <script type="text/javascript" src="{% static 'js/sounds.js' %}"></script>
+</body>
+</html>

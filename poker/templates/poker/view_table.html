@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static from staticfiles %}
+{% block content %}
+
+<div id="masthead" class="row">
+    <h1>{{ table.name }}</h1>
+</div>
+
+<p><b>Starting Blinds: {{ table.blinds }}</b></p>
+
+{% if user.is_authenticated %}
+{% if user not in player_list and not table.is_active %}
+<form method="POST" action="{% url 'join_table' table.id %}">
+    {% csrf_token %}
+    <button class="btn-danger">Join Table</button>
+</form>
+{% endif %}
+{% endif %}
+
+{% if table.is_active %}
+<p>Table is active</p>
+{% endif %}
+
+<hr>
+
+{% for player in players %}
+<p>{{ player.user }} - <img src="/static/images/poker-chip.png" alt="poker chip"><i> {{ player.chips }}</i></p>
+<br>
+{% endfor %}
+
+{% endblock %}
+
+

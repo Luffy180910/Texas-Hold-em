@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h3>排行 (排行榜)</h3>
+  <table class="striped">
+    <thead>
+      <tr>
+        <th>位置</th>
+        <th>玩家</th>
+        <th>筹码</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for player in players %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ player.user.username }}</td>
+        <td>{{ player.chips }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3">还没有玩家数据。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
