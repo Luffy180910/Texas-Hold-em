@@ -198,22 +198,39 @@ def get_current_hand(request, id):
 
 
 # ------- Creates a player for a table ---------
+@login_required
 def join_table(request, id):
     table = get_object_or_404(Table, pk=id)
-    players = Player.objects.filter(table=table)
-    player = Player()
-    player.table_id = id
-    player.user = request.user
-    player.save()
 
-    # Activates table when full and assigns a player a seat
-    if len(players) == table.no_of_players:
+    # If the user already has a Player object, reuse it instead of creating a new one.
+    # This avoids the UNIQUE constraint on Player.user (OneToOneField).
+    try:
+        player = Player.objects.get(user=request.user)
+        # If the player is already at this table, just redirect back
+        if player.table_id == table.id:
+            return redirect('view_table', id)
+
+        # Otherwise move the player to the requested table
+        player.table = table
+        player.is_active = True
+        player.save()
+    except Player.DoesNotExist:
+        # Create a new Player for this user and table
+        player = Player.objects.create(user=request.user, table=table)
+
+    # Re-fetch players for this table now that we've added/moved the player
+    players = list(Player.objects.filter(table=table))
+
+    # Activates table when full and assigns seat numbers
+    # (use >= to be robust against race conditions)
+    if len(players) >= table.no_of_players:
         table.is_active = True
         table.save()
-        for index, player in enumerate(players):
-            player.seat_num = index
-            player.save()
+        for index, p in enumerate(players):
+            p.seat_num = index
+            p.save()
         return redirect('deal', id)
+
     return redirect('view_table', id)
 
 
